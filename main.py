@@ -1,10 +1,8 @@
 #importamos flask para uso de la api
-from flask import Flask, request, make_response,render_template
+from flask import Flask, request, make_response,render_template, jsonify
 import requests as req
 #importamos pyodbc para conectar con sqlserver
 import pyodbc 
-#importamos jsonify para retornar
-from flask_jsonpify import jsonify
 #importamos config para la configuracion de accesos
 import config
 #importamos jwt para la seguridad de los tokens
