@@ -1,6 +1,6 @@
 # HELLOHERO!
 
-Esta es una aplicacion basica para calcular impuestos, haciendo uso de una api de python en flask y html basico.
+Esta es una aplicacion basica para calcular impuestos, haciendo uso de una api de python en flask y html y javascript basico.
 Para python version 3.8
 
 # Librerias para instalar
