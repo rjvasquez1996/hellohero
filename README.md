@@ -5,15 +5,13 @@ Para python version 3.8
 
 # Librerias para instalar
 -flask
-**pip install flask**
 -requests
-**pip install requests**
 -pyodbc
-**pip install pyodbc**
 -flask_jsonpify
-**pip install flask_jsonpify**
 -jwt
-**pip install pyjwt**
+
+# Como instalar
+pip install -r requirements.txt
 
 ## Crear archivo config.ini 
 [APP]
