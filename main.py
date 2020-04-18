@@ -2,7 +2,7 @@
 from flask import Flask, request, make_response,render_template, jsonify
 import requests as req
 #importamos pyodbc para conectar con sqlserver
-import pyodbc 
+import pymssql 
 #importamos config para la configuracion de accesos
 import config
 #importamos jwt para la seguridad de los tokens
@@ -17,7 +17,7 @@ from funciones import func
 HEADERS_NEEDED=["id","nombre","descripcion","precio","cantidad","codigo_impuesto"]
 HEADERS_DICT={"id":"int","nombre":"string","descripcion":"string","precio":"float","cantidad":"int","codigo_impuesto":"string"}
 #creamos la conexion de la bd
-msdb = pyodbc.connect('Driver={SQL Server};Server='+config.HOST+';UID='+config.USER+';PWD='+config.PASS+'; Database='+config.DATABASE+';')
+msdb = pymssql.connect(server=config.HOST,user=config.USER,password=config.PASS, database=config.DATABASE)
 conn=msdb.cursor()
 #generamos la app para la api
 app = Flask(__name__)
