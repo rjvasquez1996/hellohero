@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <!-- Titulo -->  
+    <title>Calcula tus impuestos</title>
+    <!--importamos las librerias-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+</head>
+<body>
+    <div id="container">
+        <div class="form-group">
+            <label class="sr-only" for="name">Username:</label>
+            <input id="user" type="name" class="form-control" id="emailInput" placeholder="username">
+        </div>
+        <div class="form-group">
+            <label class="sr-only" for="password">Password</label>
+            <input id="pass" type="password" class="form-control"  placeholder="password">
+        </div>
+            <!-- Username -->
+            <div >
+                <button id="login">Logeate</button>  
+            </div>
+        
+    </div>
+</body>
+<!--script de javascript con jquery-->
+<script type="text/javascript">
+$(document).ready(function() {
+   
+    //llamamos por post a la api para login y le pasamos las credenciales
+    $("#login").click(()=>
+    {
+        var url = window.location.origin+'/login';
+        var data = {"username": $("#user").val(),"password":$("#pass").val() };
+        var base64Credentials = btoa(data.username+":"+data.password);
+        $.ajax({
+            url: url,
+            type: 'post',
+            data: {
+            },
+            headers: {
+                'Content-Type': 'application/json',
+                "Authorization":"Basic "+base64Credentials
+            },
+            dataType: 'json',
+            success: function (data) {
+            
+            if(data.status==true)
+                window.location.replace(window.location.origin+"/calcular"+"?token="+data.data);
+            else
+                alert(data.message)
+            },
+            error:function (error) {
+                alert(error);
+            },
+        });
+        
+    })
+
+});
+    </script>
+</html>
