@@ -3,11 +3,10 @@
 Esta es una aplicacion basica para calcular impuestos, haciendo uso de una api de python en flask y html y javascript basico.
 Para python version 3.8
 
-# Librerias para instalar
+# Librerias para instalar, windows
 -flask
 -requests
 -pyodbc
--flask_jsonpify
 -jwt
 
 # Como instalar
