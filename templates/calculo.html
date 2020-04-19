@@ -27,10 +27,10 @@
         <h3>Productos actuales</h3>
         <!--PD: no actualiza por problemas de iframe-->
         <div>
-            <iframe id="actual" src='https://view.officeapps.live.com/op/embed.aspx?src=https://hellohero.s3.amazonaws.com/compras.xlsx' width='1000px' height='400px' frameborder='0'> </iframe>
+            <iframe id="actual" src='https://view.officeapps.live.com/op/embed.aspx?src=0' width='1000px' height='400px' frameborder='0'> </iframe>
         </div>
         <div style="padding-left: 30;">
-            <a href="https://hellohero.s3.amazonaws.com/compras.xlsx" target="_blank" ><button class="btn btn-default">Descarga</button></a>        
+            <a href="#" id="descarga" target="_blank" ><button class="btn btn-default">Descarga</button></a>        
         </div>
         <h3>Usuarios</h3>
         <table border="1" id="usuarios">
@@ -63,11 +63,12 @@
 <!--script de javascript con jquery-->
 <script type="text/javascript">
 //variables globales
-var jsonExcelIn=null
-var headers=["id","nombre","descripcion","precio","cantidad","codigo_impuesto"]
+
 //uso de jquery
 $(document).ready(async function() {
     //definir cabezeras requeridas
+    var headers=["id","nombre","descripcion","precio","cantidad","codigo_impuesto"]
+    var jsonExcelIn=null
     for(var i=0;i<headers.length;i++)
     {
         $('#cabeceras').append('<td style="padding:5px;">'+headers[i]+" "+'</td>')
@@ -87,9 +88,38 @@ $(document).ready(async function() {
     {   
         await sleep(200)
         obtener_impuestos()
+        await sleep(200)
+        obtener_url()
     })
+    function obtener_url()
+    {
+        var token=findGetParameter("token");
+        var url = window.location.origin+'/excel?token='+token;
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function (data) {
+            //en caso de que funcione bien
+            if(data.status==true)
+            {
+                url=data.data;
+                boton_descarga=document.getElementById('descarga');
+                boton_descarga.href=url
+                var iframe = document.getElementById('actual');
+                iframe.src = iframe.src.replace(iframe.src.split("=")[1],url);
+            }
+            //en caso de error escribo el mensaje
+            else
+                alert(data)
+                return 
+            },
+            //en caso de error del post
+            error:function (error) {
+                console.log(error);
+            },
+        });
+    }
     
-    //obtener_usuarios()
     function obtener_usuarios()
     {
         var token=findGetParameter("token");
@@ -170,7 +200,7 @@ $(document).ready(async function() {
     var ExcelToJSON = function() 
     {
         //parsea el excel
-        this.parseExcel = function(file,ret) 
+        this.parseExcel = function(file) 
         {
             //crea un Filereader
             var reader = new FileReader();
@@ -209,12 +239,12 @@ $(document).ready(async function() {
             reader.readAsBinaryString(file);
         };
     };
-     async function handleFileSelect(file) 
+     function handleFileSelect(file) 
     {
         //llamo a la libreria
         var xl2json = new ExcelToJSON();
         //y parseo el excel
-        xl2json.parseExcel(file,result);
+        xl2json.parseExcel(file);
     }
     //crea el usuario
     $("#crear_usuario").click(()=>
@@ -255,7 +285,7 @@ $(document).ready(async function() {
         try
         {
             file=$("#fileinput")[0].files[0]
-            await handleFileSelect(file)
+            handleFileSelect(file)
         }
         catch
         {
@@ -297,8 +327,7 @@ $(document).ready(async function() {
             {
                 alert("puedes descargar tu archivo en el boton de descarga en productos actuales")
                 //actualiza el frame
-                var iframe = document.getElementById('actual');
-                iframe.src = iframe.src;
+                obtener_url()
             }
             //en caso de error escribo el mensaje
             else

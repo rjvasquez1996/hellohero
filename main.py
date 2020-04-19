@@ -17,8 +17,9 @@ from funciones import func
 HEADERS_NEEDED=["id","nombre","descripcion","precio","cantidad","codigo_impuesto"]
 HEADERS_DICT={"id":"int","nombre":"string","descripcion":"string","precio":"float","cantidad":"int","codigo_impuesto":"string"}
 #creamos la conexion de la bd
-msdb = pymssql.connect(server=config.HOST,user=config.USER,password=config.PASS, database=config.DATABASE)
-conn=msdb.cursor()
+conn = pymssql.connect(server=config.HOST,user=config.USER,password=config.PASS, database=config.DATABASE)
+cursor=conn.cursor()
+
 #generamos la app para la api
 app = Flask(__name__)
 #verificamos el token para cada transaccion
@@ -46,44 +47,64 @@ def calculo():
     return render_template("calculo.html")
 
 #ingresa a la bd nuestros datos nuevos ademas sube nuestro excel a s3
-@app.route('/excel', methods=["POST"])
+@app.route('/excel', methods=["GET","POST"])
 @token_required
 def subir_excel():
-    #obtengo dato del token
-    token = request.args.get("token")
-    #encripto con la secret key
-    data=jwt.decode(token,config.SECRET_KEY)
-    #obtengo la data del token
-    id=data["user"]
-    #obtengo la data del json
-    try:
-        jsondata=request.get_json()
-    except:
-        return jsonify({"status":False,"message":"error intentando obtener data del archivo","data":""})
-    #verifico que cumpla con los headers
-    if(func.check_headers(HEADERS_DICT,HEADERS_NEEDED,jsondata)==False):
-        return jsonify({"status":False,"message":"El archivo no cumple con los datos necesarios","data":""})
-    #subo la data en la bd
-    fallidas=func.data_upload(conn,jsondata,id)
-    #obtengo la data calculada
-    jsondata=func.get_products(conn)
-    #llamo a la api de s3
-    APIawsURL="https://kkv35vo1u8.execute-api.us-east-1.amazonaws.com/dev/generar"
-    HEADERS = {
-        'Content-Type': 'application/json'
-    }
-    #uso metodo post
-    res = req.post(APIawsURL,json=jsondata,auth=auth,headers=HEADERS)
-    response =res.json()['data']
-    #retorno data
-    return jsonify({"status":True,"message":"json obtenido correctamente","data":response})
+    if(request.method=="GET"):
+        #obtengo mi url_actual
+        url=func.get_url(cursor)
+        return jsonify({"status":True,"message":"url obtenida correctamente ","data":url})
+    elif(request.method=="POST"):
+        #obtengo dato del token
+        token = request.args.get("token")
+        #encripto con la secret key
+        data=jwt.decode(token,config.SECRET_KEY)
+        #obtengo la data del token
+        id=data["user"]
+        #obtengo la data del json
+        try:
+            jsondata=request.get_json()
+            
+        except:
+            return jsonify({"status":False,"message":"error intentando obtener data del archivo","data":""})
+        #verifico que cumpla con los headers
+        if(func.check_headers(HEADERS_DICT,HEADERS_NEEDED,jsondata)==False):
+            return jsonify({"status":False,"message":"El archivo no cumple con los datos necesarios","data":""})
+        #obtengo un url unico para definir en s3 segun datetime
+        url="https://hellohero.s3.amazonaws.com/"
+        url=url+str(datetime.datetime.now().strftime("%Y%m%d%I%M%S"))+"compras.xlsx"
+        
+        #subo la data en la bd
+        fallidas=func.data_upload(conn,cursor,jsondata,id,url)
+        
+        #obtengo la data calculada
+        body=func.get_products(conn,cursor)
+
+        #llamo a la api de s3
+        APIawsURL="https://kkv35vo1u8.execute-api.us-east-1.amazonaws.com/dev/generar"
+        HEADERS = {
+            'Content-Type': 'application/json'
+        }
+        #uso metodo post
+        
+        res = req.post(APIawsURL,json={"body":body,"url":url},headers=HEADERS)
+        response =res.json()
+        print(response)
+        return response
+        print(response)
+
+        if(response["status"]==False):
+            return jsonify({"status":False,"message":"json obtenido correctamente","data":response})    
+        print(response)
+        #retorno data
+        return jsonify({"status":True,"message":"json obtenido correctamente","data":response})
 #defino mi ruta usuario
 @app.route("/usuario",methods=["GET","PUT"])
 @token_required
 def usuarios():
     if(request.method=="GET"):
         #obtengo mi lista de usuarios
-        usuarios=func.get_users(conn)
+        usuarios=func.get_users(cursor)
         return jsonify({"status":True,"message":"usuarios obtenidos correctamente ","data":usuarios})
     elif (request.method=="PUT"):
         try:
@@ -93,7 +114,8 @@ def usuarios():
             return jsonify({"status":False,"message":"error intentando obtener data del usuario","data":""})
         if(jsondata.get("usuario") is None or jsondata.get("password") is None):
             return jsonify({"status":False,"message":"error debe ingresar usuario y password de manera correcta","data":""})
-        func.add_user(conn,jsondata)
+        if (func.add_user(conn,cursor,jsondata)==False):
+            return jsonify({"status":False,"message":"error ya existe un usario con ese user","data":""})
         return jsonify({"status":True,"message":"usuarios agregados correctamente","data":""})
 
 #defino mi ruta impuestos
@@ -101,7 +123,7 @@ def usuarios():
 @token_required
 def get_impuestos():
     #obtengo mi lista de impuestos
-    impuestos=func.get_taxes(conn)
+    impuestos=func.get_taxes(cursor)
     return jsonify({"status":True,"message":"impuestos obtenidos correctamente ","data":impuestos})
 
 #mi ruta login para loguearse
@@ -110,8 +132,8 @@ def login():
     auth = request.authorization
     if(auth is None):
         return jsonify({"status":False,"message":"Se requiere login","data":""})
-    query="select id from USUARIO where usuario=? and contraseña=CONVERT(VARCHAR(32),HashBytes('MD5','"+auth.password+"'),2)"
-    cursor= conn.execute(query,auth.username) 
+    query="select id from USUARIO where usuario= '"+auth.username+"' and contraseña=CONVERT(VARCHAR(32),HashBytes('MD5','"+auth.password+"'),2)"
+    cursor.execute(query)
     res = cursor.fetchone()
     print(res)
     if(res is None):
@@ -124,4 +146,4 @@ def login():
     
 
 if __name__ == '__main__':
-     app.run(port='5002',debug=False)
+     app.run(port='5002',debug=True)
